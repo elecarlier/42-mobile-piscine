@@ -8,6 +8,7 @@ export default function Index() {
       <Link href="/ex00" style={styles.link}>Ex00</Link>
       <Link href="/ex01" style={styles.link}>Ex01</Link>
       <Link href="/ex02" style={styles.link}>Ex02</Link>
+      <Link href="/calculator_app" style={styles.link}>Ex03</Link>
     </View>
   );
 }
