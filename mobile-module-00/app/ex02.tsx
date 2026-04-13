@@ -1,13 +1,11 @@
-import {useState} from 'react'
+import { useState } from "react";
 import { Text, View, Button } from "react-native";
 
-
-
-export default function App() {
+export default function Ex02() {
   const [isPressed, setPressed] = useState(false);
 
   return (
-    <View>
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <Text>{isPressed ? "Hello World!" : "I love tractors"}</Text>
       <Button title="Me too" onPress={() => setPressed(!isPressed)} />
     </View>
