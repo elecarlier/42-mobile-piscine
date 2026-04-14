@@ -185,23 +185,27 @@ export default function WeatherApp() {
       return;
     }
     setPermissionDenied(false);
-    const { coords } = await Location.getCurrentPositionAsync({});
+    try {
+      const { coords } = await Location.getCurrentPositionAsync({});
 
-    // Nominatim (OpenStreetMap) reverse geocoding: lat/lon → address
-    const geoRes = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`
-    );
-    const geoJson = await geoRes.json();
-    // city/town/village depending on the size of the locality
-    setCity({
-      name: geoJson.address?.city ?? geoJson.address?.town ?? geoJson.address?.village ?? 'Unknown',
-      region: geoJson.address?.state ?? '',
-      country: geoJson.address?.country ?? '',
-    });
+      // Nominatim (OpenStreetMap) reverse geocoding: lat/lon → address
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`
+      );
+      const geoJson = await geoRes.json();
+      // city/town/village depending on the size of the locality
+      setCity({
+        name: geoJson.address?.city ?? geoJson.address?.town ?? geoJson.address?.village ?? 'Unknown',
+        region: geoJson.address?.state ?? '',
+        country: geoJson.address?.country ?? '',
+      });
 
-    const weatherRes = await fetch(WEATHER_URL(coords.latitude, coords.longitude));
-    const weatherJson = await weatherRes.json();
-    setWeather(WeatherSchema.parse(weatherJson));
+      const weatherRes = await fetch(WEATHER_URL(coords.latitude, coords.longitude));
+      const weatherJson = await weatherRes.json();
+      setWeather(WeatherSchema.parse(weatherJson));
+    } catch {
+      setPermissionDenied(true);
+    }
   }
 
   return (

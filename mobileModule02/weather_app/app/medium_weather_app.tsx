@@ -69,8 +69,12 @@ export default function WeatherApp() {
       return;
     }
     setPermissionDenied(false);
-    const { coords } = await Location.getCurrentPositionAsync({});
-    setLocationText(`lat: ${coords.latitude}, lon: ${coords.longitude}`);
+    try {
+      const { coords } = await Location.getCurrentPositionAsync({});
+      setLocationText(`lat: ${coords.latitude}, lon: ${coords.longitude}`);
+    } catch {
+      setPermissionDenied(true);
+    }
   }
 
   return (
