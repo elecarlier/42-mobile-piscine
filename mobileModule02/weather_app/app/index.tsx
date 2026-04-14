@@ -6,6 +6,8 @@ export default function Index() {
     <View style={styles.container}>
       <Text style={styles.title}>Mobile Module 01</Text>
       <Link href="/medium_weather_app" style={styles.link}>Ex00</Link>
+      <Link href="/ex01" style={styles.link}>Ex01</Link>
+      <Link href="/ex02" style={styles.link}>Ex02</Link>
     </View>
   );
 }
