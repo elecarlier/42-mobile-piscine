@@ -1,8 +1,10 @@
-import { Text, View, TextInput, TouchableOpacity } from "react-native";
+import { Text, View, TextInput, TouchableOpacity, useWindowDimensions } from "react-native";
 import { Appbar } from 'react-native-paper';
-import { styles } from "./ex02.styles";
+import { makeStyles } from "../styles/ex02.styles";
 
 export default function Ex02() {
+  const { width, height } = useWindowDimensions();
+  const styles = makeStyles(width > height);
   return (
     <View style={styles.container}>
       <Appbar.Header style={styles.appbar}>

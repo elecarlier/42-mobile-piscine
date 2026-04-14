@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
 
-export const styles = StyleSheet.create({
+export const makeStyles = (isLandscape: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000",
@@ -12,34 +12,35 @@ export const styles = StyleSheet.create({
     color: "white",
   },
   display: {
-    flex: 1,
+    flex: isLandscape ? 1 : 2,
     justifyContent: "flex-end",
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: isLandscape ? 4 : 12,
   },
   expressionInput: {
     color: "#888",
-    fontSize: 28,
+    fontSize: isLandscape ? 18 : 28,
     textAlign: "right",
   },
   resultInput: {
     color: "white",
-    fontSize: 56,
+    fontSize: isLandscape ? 32 : 56,
     textAlign: "right",
   },
   buttons: {
+    flex: isLandscape ? 3 : 4,
     paddingHorizontal: 8,
-    paddingBottom: 16,
+    paddingBottom: isLandscape ? 4 : 16,
   },
   row: {
     flexDirection: "row",
-    marginBottom: 8,
+    flex: 1,
+    marginBottom: 4,
   },
   btn: {
     flex: 1,
     margin: 4,
-    aspectRatio: 1,
-    borderRadius: 999,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -54,12 +55,12 @@ export const styles = StyleSheet.create({
   },
   btnText: {
     color: "white",
-    fontSize: 22,
+    fontSize: isLandscape ? 16 : 22,
     fontWeight: "500",
   },
   btnSpecialText: {
     color: "black",
-    fontSize: 22,
+    fontSize: isLandscape ? 16 : 22,
     fontWeight: "500",
   },
 });

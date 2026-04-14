@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Text, View, TextInput, TouchableOpacity } from "react-native";
+import { Text, View, TextInput, TouchableOpacity, useWindowDimensions } from "react-native";
 import { Appbar } from 'react-native-paper';
-import { styles } from "./ex02.styles";
+import { makeStyles } from "../styles/ex02.styles";
 
 
 export default function CalculatorApp() {
+	const { width, height } = useWindowDimensions();
+	const isLandscape = width > height;
+	const styles = makeStyles(isLandscape);
 	const [expression, setExpression] = useState("0");
 	const [result, setResult] = useState("0");
 
