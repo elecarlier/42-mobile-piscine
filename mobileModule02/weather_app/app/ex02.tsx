@@ -142,6 +142,7 @@ export default function WeatherApp() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [city, setCity] = useState<CityInfo | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Request geolocation on first render
   useEffect(() => {
@@ -152,28 +153,45 @@ export default function WeatherApp() {
   async function handleSelectCity(suggestion: CitySuggestion) {
     setSearch(suggestion.name);
     setShowSuggestions(false);
-    setCity({ name: suggestion.name, region: suggestion.admin1, country: suggestion.country });
-
-    const weatherRes = await fetch(WEATHER_URL(suggestion.latitude, suggestion.longitude));
-    const weatherJson = await weatherRes.json();
-    setWeather(WeatherSchema.parse(weatherJson));
+    setError(null);
+    try {
+      const weatherRes = await fetch(WEATHER_URL(suggestion.latitude, suggestion.longitude));
+      if (!weatherRes.ok) throw new Error('connection');
+      const weatherJson = await weatherRes.json();
+      setWeather(WeatherSchema.parse(weatherJson));
+      setCity({ name: suggestion.name, region: suggestion.admin1, country: suggestion.country });
+    } catch {
+      setError('Connection to the API failed. Please try again.');
+    }
   }
 
   // Fetches city suggestions from open-meteo geocoding as the user types
   async function handleSearchChange(text: string) {
     setSearch(text);
+    setError(null);
 
     if (text.length < 2) {
       setSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
 
-    const res = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(text)}&count=5`
-    );
-    const data = await res.json();
-    setSuggestions(data.results ?? []);
-    setShowSuggestions(true);
+    try {
+      const res = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(text)}&count=5`
+      );
+      if (!res.ok) throw new Error('connection');
+      const data = await res.json();
+      const results: CitySuggestion[] = data.results ?? [];
+      setSuggestions(results);
+      setShowSuggestions(results.length > 0);
+      if (results.length === 0)
+        setError('No city found with that name.');
+    } catch {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setError('Connection to the API failed. Please try again.');
+    }
   }
 
   // Requests GPS permission, then uses Nominatim for reverse geocoding (coords → city name)
@@ -255,6 +273,11 @@ export default function WeatherApp() {
         {permissionDenied && (
           <Text style={{ color: 'orange', padding: 8 }}>
             Geolocation is not available, please enable it in your App settings
+          </Text>
+        )}
+        {error && (
+          <Text style={{ color: 'red', padding: 8 }}>
+            {error}
           </Text>
         )}
 
