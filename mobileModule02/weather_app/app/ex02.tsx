@@ -186,11 +186,26 @@ export default function WeatherApp() {
     }
     setPermissionDenied(false);
     try {
-      const { coords } = await Location.getCurrentPositionAsync({});
+      const coords = await new Promise<Location.LocationObjectCoords>((resolve, reject) => {
+        let sub: Location.LocationSubscription | null = null;
+        const timer = setTimeout(() => {
+          sub?.remove();
+          reject(new Error('Location timeout'));
+        }, 10000);
+        Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.High },
+          (loc) => {
+            clearTimeout(timer);
+            sub?.remove();
+            resolve(loc.coords);
+          }
+        ).then(s => { sub = s; }).catch(reject);
+      });
 
       // Nominatim (OpenStreetMap) reverse geocoding: lat/lon → address
       const geoRes = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`
+        `https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`,
+        { headers: { 'User-Agent': 'weather_app/1.0' } }
       );
       const geoJson = await geoRes.json();
       // city/town/village depending on the size of the locality
@@ -203,7 +218,8 @@ export default function WeatherApp() {
       const weatherRes = await fetch(WEATHER_URL(coords.latitude, coords.longitude));
       const weatherJson = await weatherRes.json();
       setWeather(WeatherSchema.parse(weatherJson));
-    } catch {
+    } catch (e) {
+      console.log('error:', e);
       setPermissionDenied(true);
     }
   }

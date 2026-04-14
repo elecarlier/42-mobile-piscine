@@ -117,7 +117,13 @@ export default function WeatherApp() {
     }
     setPermissionDenied(false);
     try {
-      const { coords } = await Location.getCurrentPositionAsync({});
+      const coords = await new Promise<Location.LocationObjectCoords>((resolve, reject) => {
+        let sub: Location.LocationSubscription | null = null;
+        const timer = setTimeout(() => { sub?.remove(); reject(new Error('timeout')); }, 10000);
+        Location.watchPositionAsync({ accuracy: Location.Accuracy.High }, (loc) => {
+          clearTimeout(timer); sub?.remove(); resolve(loc.coords);
+        }).then(s => { sub = s; }).catch(reject);
+      });
       setLocationText(`lat: ${coords.latitude}, lon: ${coords.longitude}`);
     } catch {
       setPermissionDenied(true);
