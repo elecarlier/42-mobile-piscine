@@ -226,6 +226,7 @@ export default function WeatherApp() {
         `https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`,
         { headers: { 'User-Agent': 'weather_app/1.0' } }
       );
+      if (!geoRes.ok) throw new Error(`Nominatim error: ${geoRes.status}`);
       const geoJson = await geoRes.json();
       // city/town/village depending on the size of the locality
       setCity({
@@ -235,6 +236,7 @@ export default function WeatherApp() {
       });
 
       const weatherRes = await fetch(WEATHER_URL(coords.latitude, coords.longitude));
+      if (!weatherRes.ok) throw new Error(`Weather API error: ${weatherRes.status}`);
       const weatherJson = await weatherRes.json();
       setWeather(WeatherSchema.parse(weatherJson));
     } catch (e) {
