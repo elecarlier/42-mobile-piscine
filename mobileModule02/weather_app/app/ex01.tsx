@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { z } from 'zod';
 
 
+//define the expected shape of the API response
 const WeatherSchema = z.object({
   current: z.object({
     temperature_2m: z.number(),
@@ -15,40 +16,42 @@ const WeatherSchema = z.object({
 });
 
 
+//two step fetch
+// async function fetchWeather(city: string): Promise<WeatherData> {
 
-async function fetchWeather(city: string): Promise<WeatherData> {
+//   //http reply
+//   const geoRes = await fetch(
+//     `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
+//   );
 
-  const geoRes = await fetch(
-    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
-  );
-  const geoData = await geoRes.json();
+//   const geoData = await geoRes.json();
 
-  if (!geoData.results?.length) {
-    throw new Error(`No city with the name : ${city}`);
-  }
+//   if (!geoData.results?.length) {
+//     throw new Error(`No city with the name : ${city}`);
+//   }
 
-  const { latitude, longitude } = geoData.results[0];
+//   const { latitude, longitude } = geoData.results[0];
 
-  // Étape 2 : latitude/longitude → météo
-  const weatherRes = await fetch(
-    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,wind_speed_10m`
-  );
-  const weatherJson = await weatherRes.json();
+//   const weatherRes = await fetch(
+//     `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,wind_speed_10m`
+//   );
+//   const weatherJson = await weatherRes.json();
 
-  // Zod vérifie que le JSON a bien la forme attendue
-  return WeatherSchema.parse(weatherJson);
-}
+//   return WeatherSchema.parse(weatherJson); //throws at the runtime if API return unexpected data
+//   //ts wraps it automatically in Promise<WeatherData>
+// }
 
 type WeatherData = z.infer<typeof WeatherSchema>;
 
 const TopTab = createMaterialTopTabNavigator();
 
-function Currently({ weather }: { weather: WeatherData | null }) {
-  if (!weather) return <Text>Recherche une ville</Text>;
+function Currently({ weather, cityName, country }: { weather: WeatherData | null, cityName: string | null, country: string | null }) {
+  if (!weather) return <Text>Search a city</Text>;
   return (
     <View>
+      {cityName && <Text>{cityName}{country ? `, ${country}` : ''}</Text>}
       <Text>Temperature : {weather.current.temperature_2m}°C</Text>
-      <Text> Wind : {weather.current.wind_speed_10m} km/h</Text>
+      <Text>Wind : {weather.current.wind_speed_10m} km/h</Text>
     </View>
   );
 }
@@ -75,40 +78,61 @@ export default function WeatherApp() {
   const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [cityName, setCityName] = useState<string | null>(null);
+  const [country, setCountry] = useState<string | null>(null);
 
   useEffect(() => {
   handleGeolocation();
   }, []);
 
-	async function handleSelectCity(city: CitySuggestion) {
-	setSearch(city.name);
-	setShowSuggestions(false);
-
-	const weatherRes = await fetch(
-		`https://api.open-meteo.com/v1/forecast?latitude=${city.latitude}&longitude=${city.longitude}&current=temperature_2m,wind_speed_10m`
-	);
-	const weatherJson = await weatherRes.json();
-	setWeather(WeatherSchema.parse(weatherJson));
-	}
-
-  async function handleSearchChange(text: string) {
-  setSearch(text);
-
-  if (text.length < 2) {
-    setSuggestions([]);
-    return;
+  async function handleSelectCity(city: CitySuggestion) {
+    setSearch(city.name);
+    setShowSuggestions(false);
+    setError(null);
+    setCityName(city.name);
+    setCountry(city.country);
+    try {
+      const weatherRes = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${city.latitude}&longitude=${city.longitude}&current=temperature_2m,wind_speed_10m`
+      );
+      if (!weatherRes.ok) throw new Error('connection');
+      const weatherJson = await weatherRes.json();
+      setWeather(WeatherSchema.parse(weatherJson));
+    } catch {
+      setError('Connection to the API failed. Please try again.');
+    }
   }
 
-  const res = await fetch(
-    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(text)}&count=5`
-  );
-  const data = await res.json();
-  setSuggestions(data.results ?? []);
-  setShowSuggestions(true);
-}
+  async function handleSearchChange(text: string) {
+    setSearch(text);
+    setError(null);
+
+    if (text.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(text)}&count=5`
+      );
+      if (!res.ok) throw new Error('connection');
+      const data = await res.json();
+      const results: CitySuggestion[] = data.results ?? [];
+      setSuggestions(results);
+      setShowSuggestions(results.length > 0);
+      if (results.length === 0)
+        setError('No city found with that name.');
+    } catch {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setError('Connection to the API failed. Please try again.');
+    }
+  }
 
   async function handleGeolocation() {
-    console.log('handleGeolocation appelée')
     const { status } = await Location.requestForegroundPermissionsAsync();
 
     if (status !== 'granted') {
@@ -140,7 +164,7 @@ export default function WeatherApp() {
             value={search}
             // onChangeText={setSearch}
 			onChangeText={handleSearchChange}
-            onSubmitEditing={() => setLocationText(search)}
+            onSubmitEditing={() => { if (suggestions.length > 0) handleSelectCity(suggestions[0]); }}
           />
           <TouchableOpacity onPress={handleGeolocation} style={{ padding: 8 }}>
             <Ionicons name="location-outline" size={24} color="white" />
@@ -157,7 +181,12 @@ export default function WeatherApp() {
 		))}
         {permissionDenied && (
           <Text style={{ color: 'orange', padding: 8 }}>
-             Geolocation is not available, please enable it in your App settings
+            Geolocation is not available, please enable it in your App settings
+          </Text>
+        )}
+        {error && (
+          <Text style={{ color: 'red', padding: 8 }}>
+            {error}
           </Text>
         )}
         <TopTab.Navigator
@@ -165,7 +194,7 @@ export default function WeatherApp() {
           screenOptions={{ swipeEnabled: true }}
         >
 		<TopTab.Screen name="Currently" options={{ tabBarIcon: ({ color }) => <Ionicons name="time-outline" size={24} color={color} /> }}>
-		{() => <Currently weather={weather} />}
+		{() => <Currently weather={weather} cityName={cityName} country={country} />}
 		</TopTab.Screen>
           <TopTab.Screen name="Today" options={{ tabBarIcon: ({ color }) => <Ionicons name="today-outline" size={24} color={color} /> }}>
             {() => <Today location={locationText} />}

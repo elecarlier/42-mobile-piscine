@@ -7,38 +7,6 @@ import { useState, useEffect } from "react";
 import { z } from 'zod';
 
 
-// const WeatherSchema = z.object({
-//   current: z.object({
-//     temperature_2m: z.number(),
-//     wind_speed_10m: z.number(),
-//   }),
-// });
-
-// async function fetchWeather(city: string): Promise<WeatherData> {
-//   // Étape 1 : "Paris" → latitude/longitude
-//   const geoRes = await fetch(
-//     `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
-//   );
-//   const geoData = await geoRes.json();
-
-//   if (!geoData.results?.length) {
-//     throw new Error(`Ville introuvable : ${city}`);
-//   }
-
-//   const { latitude, longitude } = geoData.results[0];
-
-//   // Étape 2 : latitude/longitude → météo
-//   const weatherRes = await fetch(
-//     `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,wind_speed_10m`
-//   );
-//   const weatherJson = await weatherRes.json();
-
-//   // Zod vérifie que le JSON a bien la forme attendue
-//   return WeatherSchema.parse(weatherJson);
-// }
-
-// type WeatherData = z.infer<typeof WeatherSchema>;
-
 const TopTab = createMaterialTopTabNavigator();
 
 function Currently({ location }: { location: string }) {

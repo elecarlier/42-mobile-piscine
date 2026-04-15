@@ -252,7 +252,7 @@ export default function WeatherApp() {
             placeholder="Search city..."
             value={search}
             onChangeText={handleSearchChange}
-            onSubmitEditing={() => {}}
+            onSubmitEditing={() => { if (suggestions.length > 0) handleSelectCity(suggestions[0]); }}
           />
           <TouchableOpacity onPress={handleGeolocation} style={{ padding: 8 }}>
             <Ionicons name="location-outline" size={24} color="white" />
