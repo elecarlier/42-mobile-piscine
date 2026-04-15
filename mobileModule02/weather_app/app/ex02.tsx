@@ -71,7 +71,7 @@ function LocationHeader({ city }: { city: CityInfo | null }) {
 }
 
 function Currently({ weather, city }: { weather: WeatherData | null; city: CityInfo | null }) {
-  if (!weather) return <Text style={{ padding: 16 }}>Search a city</Text>;
+  if (!weather) return null;
   return (
     <View style={{ padding: 16, gap: 8 }}>
       <LocationHeader city={city} />
@@ -83,7 +83,7 @@ function Currently({ weather, city }: { weather: WeatherData | null; city: CityI
 }
 
 function Today({ weather, city }: { weather: WeatherData | null; city: CityInfo | null }) {
-  if (!weather) return <Text style={{ padding: 16 }}>Search a city</Text>;
+  if (!weather) return null;
 
   // daily.time[0] is today's date (YYYY-MM-DD); filter hourly entries that start with it
   const today = weather.daily.time[0];
@@ -108,7 +108,7 @@ function Today({ weather, city }: { weather: WeatherData | null; city: CityInfo 
 }
 
 function Weekly({ weather, city }: { weather: WeatherData | null; city: CityInfo | null }) {
-  if (!weather) return <Text style={{ padding: 16 }}>Search a city</Text>;
+  if (!weather) return null;
 
   return (
     <ScrollView>
@@ -285,7 +285,7 @@ export default function WeatherApp() {
         {/* Three tabs: Currently / Today / Weekly — weather and city state are shared */}
         <TopTab.Navigator
           tabBarPosition="bottom"
-          screenOptions={{ swipeEnabled: true }}
+          screenOptions={{ swipeEnabled: true, lazy: true }}
         >
           <TopTab.Screen name="Currently" options={{ tabBarIcon: ({ color }) => <Ionicons name="time-outline" size={24} color={color} /> }}>
             {() => <Currently weather={weather} city={city} />}

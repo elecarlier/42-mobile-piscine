@@ -30,11 +30,25 @@ function Currently({ weather, cityName, country }: { weather: WeatherData | null
     </View>
   );
 }
-function Today({ location }: { location: string }) {
-  return <View><Text>Today {location}</Text></View>
+function Today({ weather, cityName, country }: { weather: WeatherData | null, cityName: string | null, country: string | null }) {
+  if (!weather) return <Text>Search a city</Text>;
+  return (
+    <View>
+      {cityName && <Text>{cityName}{country ? `, ${country}` : ''}</Text>}
+      <Text>Temperature : {weather.current.temperature_2m}°C</Text>
+      <Text>Wind : {weather.current.wind_speed_10m} km/h</Text>
+    </View>
+  );
 }
-function Weekly({ location }: { location: string }) {
-  return <View><Text>Weekly {location}</Text></View>
+function Weekly({ weather, cityName, country }: { weather: WeatherData | null, cityName: string | null, country: string | null }) {
+  if (!weather) return <Text>Search a city</Text>;
+  return (
+    <View>
+      {cityName && <Text>{cityName}{country ? `, ${country}` : ''}</Text>}
+      <Text>Temperature : {weather.current.temperature_2m}°C</Text>
+      <Text>Wind : {weather.current.wind_speed_10m} km/h</Text>
+    </View>
+  );
 }
 
 type CitySuggestion = {
@@ -47,7 +61,6 @@ type CitySuggestion = {
 };
 
 export default function WeatherApp() {
-  const [locationText, setLocationText] = useState('');
   const [search, setSearch] = useState('');
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
@@ -126,7 +139,6 @@ export default function WeatherApp() {
           clearTimeout(timer); sub?.remove(); resolve(loc.coords);
         }).then(s => { sub = s; }).catch(reject);
       });
-      setLocationText(`lat: ${coords.latitude}, lon: ${coords.longitude}`);
     } catch {
       setPermissionDenied(true);
     }
@@ -175,10 +187,10 @@ export default function WeatherApp() {
 		{() => <Currently weather={weather} cityName={cityName} country={country} />}
 		</TopTab.Screen>
           <TopTab.Screen name="Today" options={{ tabBarIcon: ({ color }) => <Ionicons name="today-outline" size={24} color={color} /> }}>
-            {() => <Today location={locationText} />}
+            {() => <Today weather={weather} cityName={cityName} country={country}  />}
           </TopTab.Screen>
           <TopTab.Screen name="Weekly" options={{ tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={24} color={color} /> }}>
-            {() => <Weekly location={locationText} />}
+            {() => <Weekly weather={weather} cityName={cityName} country={country} />}
           </TopTab.Screen>
         </TopTab.Navigator>
       </View>
