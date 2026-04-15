@@ -16,31 +16,6 @@ const WeatherSchema = z.object({
 });
 
 
-//two step fetch
-// async function fetchWeather(city: string): Promise<WeatherData> {
-
-//   //http reply
-//   const geoRes = await fetch(
-//     `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
-//   );
-
-//   const geoData = await geoRes.json();
-
-//   if (!geoData.results?.length) {
-//     throw new Error(`No city with the name : ${city}`);
-//   }
-
-//   const { latitude, longitude } = geoData.results[0];
-
-//   const weatherRes = await fetch(
-//     `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,wind_speed_10m`
-//   );
-//   const weatherJson = await weatherRes.json();
-
-//   return WeatherSchema.parse(weatherJson); //throws at the runtime if API return unexpected data
-//   //ts wraps it automatically in Promise<WeatherData>
-// }
-
 type WeatherData = z.infer<typeof WeatherSchema>;
 
 const TopTab = createMaterialTopTabNavigator();
@@ -107,6 +82,7 @@ export default function WeatherApp() {
   async function handleSearchChange(text: string) {
     setSearch(text);
     setError(null);
+    setPermissionDenied(false);
 
     if (text.length < 2) {
       setSuggestions([]);
@@ -133,7 +109,9 @@ export default function WeatherApp() {
   }
 
   async function handleGeolocation() {
+    console.log('handleGeolocation called');
     const { status } = await Location.requestForegroundPermissionsAsync();
+    console.log('status:', status);
 
     if (status !== 'granted') {
       setPermissionDenied(true);

@@ -29,8 +29,9 @@ export default function WeatherApp() {
   }, []);
 
   async function handleGeolocation() {
-    console.log('handleGeolocation appelée')
+    console.log('handleGeolocation called');
     const { status } = await Location.requestForegroundPermissionsAsync();
+    console.log('status:', status);
 
     if (status !== 'granted') {
       setPermissionDenied(true);

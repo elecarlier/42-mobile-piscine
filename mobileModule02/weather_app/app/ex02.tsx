@@ -169,6 +169,7 @@ export default function WeatherApp() {
   async function handleSearchChange(text: string) {
     setSearch(text);
     setError(null);
+    setPermissionDenied(false);
 
     if (text.length < 2) {
       setSuggestions([]);
