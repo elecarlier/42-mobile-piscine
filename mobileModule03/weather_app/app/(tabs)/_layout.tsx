@@ -1,9 +1,3 @@
-
-// =====================
-// Layout for the Tab Navigator
-// =====================
-
-
 import { Tabs } from 'expo-router';
 import {
   View,
@@ -18,10 +12,6 @@ import * as Location from 'expo-location';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { z } from 'zod';
 
-
-
-
-
 // =====================
 // WEATHER API
 // =====================
@@ -31,7 +21,6 @@ const WEATHER_URL = (lat: number, lon: number) =>
   `&hourly=temperature_2m,wind_speed_10m,weathercode` +
   `&daily=temperature_2m_max,temperature_2m_min,wind_speed_10m_max,weathercode` +
   `&timezone=auto&forecast_days=7`;
-
 
 // =====================
 // WEATHER DESCRIPTION
@@ -61,7 +50,6 @@ const WEATHER_DESCRIPTIONS: Record<number, string> = {
 export function weatherDesc(code: number) {
   return WEATHER_DESCRIPTIONS[code] ?? `Code ${code}`;
 }
-
 
 // =====================
 // ZOD
@@ -104,20 +92,20 @@ type CitySuggestion = {
   longitude: number;
 };
 
-
 // =====================
 // CONTEXT
 // =====================
 const WeatherContext = createContext<{
   weather: WeatherData | null;
   city: CityInfo | null;
+  error: string | null;
 }>({
   weather: null,
   city: null,
+  error: null,
 });
 
 export const useWeather = () => useContext(WeatherContext);
-
 
 // =====================
 // COMPONENT
@@ -128,8 +116,11 @@ export default function TabsLayout() {
   const [search, setSearch] = useState('');
   const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [city, setCity] = useState<CityInfo | null>(null);
+
+  const [error, setError] = useState<string | null>(null);
   const [overlayHeight, setOverlayHeight] = useState(0);
 
   useEffect(() => {
@@ -140,14 +131,23 @@ export default function TabsLayout() {
   // SELECT CITY
   // =====================
   async function handleSelectCity(s: CitySuggestion) {
-    setSearch(s.name);
-    setShowSuggestions(false);
+    try {
+      setSearch(s.name);
+      setShowSuggestions(false);
+      setError(null);
 
-    const res = await fetch(WEATHER_URL(s.latitude, s.longitude));
-    const json = await res.json();
+      const res = await fetch(WEATHER_URL(s.latitude, s.longitude));
+      if (!res.ok) throw new Error('Weather API error');
 
-    setWeather(WeatherSchema.parse(json));
-    setCity({ name: s.name, region: s.admin1, country: s.country });
+      const json = await res.json();
+      const parsed = WeatherSchema.parse(json);
+
+      setWeather(parsed);
+      setCity({ name: s.name, region: s.admin1, country: s.country });
+    } catch (e) {
+      console.log('Select city error:', e);
+      setError('Failed to load city weather 🌤️');
+    }
   }
 
   // =====================
@@ -155,6 +155,7 @@ export default function TabsLayout() {
   // =====================
   async function handleSearchChange(text: string) {
     setSearch(text);
+    setError(null);
 
     if (text.length < 2) {
       setSuggestions([]);
@@ -162,133 +163,109 @@ export default function TabsLayout() {
       return;
     }
 
-    const res = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(text)}&count=5`
-    );
+    try {
+      const res = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(text)}&count=5`
+      );
 
-    const data = await res.json();
-    const results: CitySuggestion[] = data.results ?? [];
+      if (!res.ok) throw new Error('Search API error');
 
-    setSuggestions(results);
-    setShowSuggestions(results.length > 0);
+      const data = await res.json();
+      const results: CitySuggestion[] = data.results ?? [];
+
+      setSuggestions(results);
+      setShowSuggestions(results.length > 0);
+    } catch (e) {
+      console.log('Search error:', e);
+      setError('Search failed 🔎');
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
   }
 
   // =====================
   // GEOLOCATION
   // =====================
-async function handleGeolocation() {
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') return;
+  async function handleGeolocation() {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
 
-    const loc = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.High,
-    });
-
-    const { latitude, longitude } = loc.coords;
-
-    // 🌤️ WEATHER
-    const weatherRes = await fetch(WEATHER_URL(latitude, longitude));
-    const weatherJson = await weatherRes.json();
-    setWeather(WeatherSchema.parse(weatherJson));
-
-    // 📍 REVERSE GEOCODING (IMPORTANT)
-    const geoRes = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-      {
-        headers: {
-          'User-Agent': 'weather_app/1.0',
-        },
+      if (status !== 'granted') {
+        setError('Location permission denied 📍');
+        return;
       }
-    );
 
-    const geoJson = await geoRes.json();
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
 
-    setCity({
-      name:
-        geoJson.address?.city ||
-        geoJson.address?.town ||
-        geoJson.address?.village ||
-        'Unknown',
-      region: geoJson.address?.state || '',
-      country: geoJson.address?.country || '',
-    });
+      const { latitude, longitude } = loc.coords;
 
-  } catch (e) {
-    console.log('Geolocation error:', e);
+      // WEATHER
+      const weatherRes = await fetch(WEATHER_URL(latitude, longitude));
+      if (!weatherRes.ok) throw new Error('Weather API error');
+
+      const weatherJson = await weatherRes.json();
+      setWeather(WeatherSchema.parse(weatherJson));
+
+      // REVERSE GEOCODING
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+        {
+          headers: {
+            'User-Agent': 'weather_app/1.0',
+          },
+        }
+      );
+
+      const geoJson = await geoRes.json();
+
+      setCity({
+        name:
+          geoJson.address?.city ||
+          geoJson.address?.town ||
+          geoJson.address?.village ||
+          'Unknown',
+        region: geoJson.address?.state || '',
+        country: geoJson.address?.country || '',
+      });
+    } catch (e) {
+      console.log('Geolocation error:', e);
+      setError('Failed to get location or weather 🌍');
+    }
   }
-}
-
 
   // =====================
   // UI
   // =====================
   return (
-    <WeatherContext.Provider value={{ weather, city }}>
+    <WeatherContext.Provider value={{ weather, city, error }}>
       <ImageBackground
         source={require('../../assets/images/clouds_background.jpg')}
         style={{ flex: 1 }}
         resizeMode="cover"
       >
-
-        <Tabs
-          screenOptions={{
-            headerShown: false,
-
-            tabBarStyle: {
-              backgroundColor: 'rgba(0,0,0,0.4)',
-              borderTopWidth: 0,
-            },
-
-            tabBarBackground: () => (
-              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }} />
-            ),
-
-            sceneContainerStyle: {
-              backgroundColor: 'transparent',
-            },
-
-            sceneStyle: {
-              backgroundColor: 'transparent',
-              paddingTop: overlayHeight,
-            },
-          }}
-        >
-          <Tabs.Screen
-            name="currently"
-            options={{
-              title: 'Currently',
-              tabBarIcon: ({ color }) => (
-                <Ionicons name="time-outline" size={24} color={color} />
-              ),
+        {/* ERROR DISPLAY */}
+        {error && (
+          <View
+            style={{
+              position: 'absolute',
+              top: insets.top + 60,
+              left: 10,
+              right: 10,
+              backgroundColor: 'rgba(255,0,0,0.85)',
+              padding: 10,
+              borderRadius: 8,
+              zIndex: 999,
             }}
-          />
+          >
+            <Text style={{ color: 'white', fontWeight: '600' }}>
+              {error}
+            </Text>
+          </View>
+        )}
 
-          <Tabs.Screen
-            name="today"
-            options={{
-              title: 'Today',
-              tabBarIcon: ({ color }) => (
-                <Ionicons name="today-outline" size={24} color={color} />
-              ),
-            }}
-          />
-
-          <Tabs.Screen
-            name="weekly"
-            options={{
-              title: 'Weekly',
-              tabBarIcon: ({ color }) => (
-                <Ionicons name="calendar-outline" size={24} color={color} />
-              ),
-            }}
-          />
-        </Tabs>
-
-
-        {/* ===================== */}
-        {/* SEARCH OVERLAY */}
-        {/* ===================== */}
+        {/* SEARCH */}
         <View
           style={{
             position: 'absolute',
@@ -299,7 +276,6 @@ async function handleGeolocation() {
           }}
           onLayout={(e) => setOverlayHeight(e.nativeEvent.layout.height)}
         >
-
           <View
             style={{
               paddingTop: insets.top + 8,
@@ -349,6 +325,55 @@ async function handleGeolocation() {
             ))}
         </View>
 
+        {/* TABS */}
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+
+            sceneStyle: {
+              backgroundColor: 'transparent',
+              paddingTop: overlayHeight,
+            },
+
+            tabBarStyle: {
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              borderTopWidth: 0,
+              elevation: 0,
+              shadowOpacity: 0,
+            },
+
+            tabBarActiveTintColor: 'white',
+            tabBarInactiveTintColor: 'rgba(255,255,255,0.6)',
+          }}
+        >
+          <Tabs.Screen
+            name="currently"
+            options={{
+              title: 'Currently',
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="time-outline" size={24} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="today"
+            options={{
+              title: 'Today',
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="today-outline" size={24} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="weekly"
+            options={{
+              title: 'Weekly',
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="calendar-outline" size={24} color={color} />
+              ),
+            }}
+          />
+        </Tabs>
       </ImageBackground>
     </WeatherContext.Provider>
   );
