@@ -58,6 +58,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    backgroundColor: 'transparent',
   },
   placeholder: {
     color: 'rgba(0,0,0,0.5)',

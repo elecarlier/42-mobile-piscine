@@ -48,7 +48,8 @@ function WeekChart({ days }: { days: { label: string; min: number; max: number }
   const ticks = [minT + 1, (minT + maxT) / 2, maxT - 1].map(t => Math.round(t));
 
   return (
-    <Svg width={CHART_WIDTH} height={CHART_HEIGHT} pointerEvents="none">
+    <View pointerEvents="none">
+    <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
       {ticks.map(t => (
         <Line
           key={t}
@@ -88,6 +89,7 @@ function WeekChart({ days }: { days: { label: string; min: number; max: number }
         </SvgText>
       ))}
     </Svg>
+    </View>
   );
 }
 
@@ -110,7 +112,7 @@ export default function WeeklyScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} nestedScrollEnabled overScrollMode="never">
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} bounces={false} overScrollMode="never">
         {city && (
           <View style={styles.locationRow}>
             <Ionicons name="location-sharp" size={16} color="#1a1a2e" />
